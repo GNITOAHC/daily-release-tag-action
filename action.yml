@@ -1,0 +1,36 @@
+name: "Generate Daily Release Tag"
+description: "Generate a YYYY-MM-DD-N daily incremental git tag"
+author: "Chao-Ting Chen"
+branding:
+  icon: "tag"
+  color: "blue"
+
+outputs:
+  tag:
+    description: "Generated daily release tag"
+    value: ${{ steps.generate.outputs.tag }}
+
+runs:
+  using: "composite"
+  steps:
+    - id: generate
+      shell: bash
+      run: |
+        set -e
+
+        TODAY=$(date +'%Y-%m-%d')
+
+        git fetch --tags
+
+        EXISTING=$(git tag | grep "^$TODAY-" | sort -t- -k4 -n || true)
+        if [ -z "$EXISTING" ]; then
+          N=1
+        else
+          LAST=$(echo "$EXISTING" | tail -1 | awk -F- '{print $4}')
+          N=$((LAST + 1))
+        fi
+
+        TAG="$TODAY-$N"
+
+        echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+        echo "Generated tag: $TAG"
